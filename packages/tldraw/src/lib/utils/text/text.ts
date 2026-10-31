@@ -80,6 +80,28 @@ export function cleanupText(text: string) {
 	return stripTrailingWhitespace(stripCommonMinimumIndentation(replaceTabsWithSpaces(text)))
 }
 
+/** @internal */
+export function hasPreservedWhitespaceInHtml(html: string, document: Document) {
+	const DOMParser = document.defaultView?.DOMParser
+	if (!DOMParser) return false
+
+	const parsed = new DOMParser().parseFromString(html, 'text/html')
+	const preservedWhitespace =
+		/(?:^|[;{])\s*white-space\s*:\s*(?:pre|pre-wrap|pre-line|break-spaces)\b/i
+	if (
+		Array.from(parsed.querySelectorAll('style')).some((element) =>
+			preservedWhitespace.test(element.textContent ?? '')
+		)
+	) {
+		return true
+	}
+
+	return Array.from(parsed.querySelectorAll('pre, [style]')).some((element) => {
+		if (element.tagName === 'PRE') return true
+		return preservedWhitespace.test(element.getAttribute('style') ?? '')
+	})
+}
+
 /** @public */
 export function truncateStringWithEllipsis(str: string, maxLength: number) {
 	return str.length <= maxLength ? str : str.substring(0, maxLength - 3) + '...'

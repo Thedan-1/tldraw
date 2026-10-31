@@ -9,6 +9,7 @@ import {
 	useValue,
 } from '@tldraw/editor'
 import React, { useCallback, useEffect, useRef } from 'react'
+import { hasPreservedWhitespaceInHtml } from '../../utils/text/text'
 import { TextHelpers } from './TextHelpers'
 
 /** @public */
@@ -150,14 +151,20 @@ export function useEditableTextCommon(shapeId: TLShapeId) {
 				// find html in the clipboard and look for the tldraw data
 				const html = e.clipboardData.getData('text/html')
 				if (html) {
+					const plainText = e.clipboardData.getData('text/plain')
 					if (html.includes('<div data-tldraw')) {
 						// Paste the plain text data instead of the tldraw data
-						const plainText = e.clipboardData.getData('text/plain')
 						preventDefault(e)
 						if (plainText) {
 							// eslint-disable-next-line @typescript-eslint/no-deprecated -- best way to insert text with undo support
 							editor.getContainerDocument().execCommand('insertText', false, plainText)
 						}
+						return
+					}
+					if (plainText && hasPreservedWhitespaceInHtml(html, editor.getContainerDocument())) {
+						preventDefault(e)
+						// eslint-disable-next-line @typescript-eslint/no-deprecated -- best way to insert text with undo support
+						editor.getContainerDocument().execCommand('insertText', false, plainText)
 					}
 				}
 			}
